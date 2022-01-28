@@ -1,0 +1,15 @@
+| datamodel vsales apac
+
+| datamodel AccButtercup_Games_Online_Sales search summariesonly=false
+
+
+L3R1:
+|tstats count as events by _time span=month | sort - _time | eval Month=strftime(_time,"%B %Y") | eval events=tostring(events, "commas") | table Month events
+
+L2R1:
+index=sales sourcetype=vendor_sales VendorID>=7000 AND VendorID<9000 | stats sum(price) as Sales by Vendor, VendorCountry, VendorCity
+| search Sales > 200 
+
+L3R2:
+| tstats sum(apac.price) as "Sales" from datamodel=vsales.apac by apac.Vendor, apac.VendorCountry, apac.VendorCity  | rename apac.Vendor AS Vendor apac.VendorCity AS City apac.VendorCountry AS  Country 
+| search Sales > 200 | sort Country Vendor City
