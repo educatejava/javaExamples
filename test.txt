@@ -1,15 +1,674 @@
-| datamodel vsales apac
+<!DOCTYPE html>
+<html lang="en">
+<body>
+<link href="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/css/bootstrap.min.css" rel="stylesheet">
+    <nav class="navbar navbar-default navbar-fixed-top" role="navigation">
+        <div class="navbar-header">
+          <button type="button" class="navbar-toggle" data-toggle="collapse" data-target=".navbar-collapse">
+            <span class="sr-only"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+            <span class="icon-bar"></span>
+          </button>
+          <a class="navbar-brand" href="#"></a>
+        </div>
+        <div class="collapse navbar-collapse">
+          <ul class="nav navbar-nav">
+            <li class="active" id="jsonLi"><a href="#" id="jsonViewMenu">JSON&nbsp;</a></li>
+            <li class="active" id="tableLi"><a href="#" id="tableViewMenu">&nbsp;Table&nbsp;</a></li>
+            <li class="active" id="treeLi"><a href="#" id="treeViewMenu">&nbsp;Tree&nbsp;</a></li>
+          </ul>
+          <button type="button" class="btn btn-default navbar-btn" id="load_json_btn"><span class="glyphicon glyphicon-play"></span></button>
+		  <!--button type="button" class="btn btn-default navbar-btn" id="load_url_btn">Load URL</button-->
+          <!--ul class="nav navbar-nav navbar-right">
+          <li><a href="#">json2table.com&nbsp;</a></li>
+        </ul-->
 
-| datamodel AccButtercup_Games_Online_Sales search summariesonly=false
+		<div id="sharethis">
+		<span class='st_twitter_large' displayText='Tweet'></span>
+		<span class='st_facebook_large' displayText='Facebook'></span>
+		<span class='st_linkedin_large' displayText='LinkedIn'></span>
+		<span class='st_pinterest_large' displayText='Pinterest'></span>
+		</div>
+        </div>
+    </nav>
 
 
-L3R1:
-|tstats count as events by _time span=month | sort - _time | eval Month=strftime(_time,"%B %Y") | eval events=tostring(events, "commas") | table Month events
+    <!-- Begin page content -->
+    <div class="container-fluid fill" style="padding-left: 0px; padding-right: 0px">
 
-L2R1:
-index=sales sourcetype=vendor_sales VendorID>=7000 AND VendorID<9000 | stats sum(price) as Sales by Vendor, VendorCountry, VendorCity
-| search Sales > 200 
+    <div id="all_panels">
 
-L3R2:
-| tstats sum(apac.price) as "Sales" from datamodel=vsales.apac by apac.Vendor, apac.VendorCountry, apac.VendorCity  | rename apac.Vendor AS Vendor apac.VendorCity AS City apac.VendorCountry AS  Country 
-| search Sales > 200 | sort Country Vendor City
+    	<div id="json_pnl">
+            <div id="inner_text">
+        	<textarea id="json_vl" wrap="hard" placeholder="Copy JSON here and press the run button [ > ]"></textarea>
+        </div>
+    	</div>
+        <div id="xxa">
+
+                <div id="table_pnl">
+                  <div class="top_size"></div>
+                  <div id="inner_tbl"></div>
+                </div>
+                <div id="tree_pnl">
+                  <div class="top_size"></div>
+                  <div id="inner_tree"></div>
+                </div>
+        </div>
+    </div>
+
+    </div>
+
+    <div class="modal fade bs-example-modal-sm" id="errorModal" tabindex="-1" role="dialog" aria-labelledby="errorModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title">Invalid JSON!</h4>
+          </div>
+          <div class="modal-body">
+            <strong>Error: </strong><span id="error_msg"></span>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Ok</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="modal fade bs-example-modal-sm" id="aboutModal" tabindex="-1" role="dialog" aria-labelledby="aboutModalLabel" aria-hidden="true">
+      <div class="modal-dialog">
+        <div class="modal-content">
+          <div class="modal-header">
+            <button type="button" class="close" data-dismiss="modal" aria-hidden="true">&times;</button>
+            <h4 class="modal-title">JSON Viewer</h4>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-default" data-dismiss="modal">Ok</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+
+    <!-- jQuery (necessary for Bootstrap's JavaScript plugins) -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/1.11.0/jquery.min.js"></script>
+    <!-- Include all compiled plugins (below), or include individual files as needed -->
+    <script src="http://netdna.bootstrapcdn.com/bootstrap/3.1.1/js/bootstrap.min.js"></script>
+    <script src="http://jquery.jcubic.pl/js/jquery.splitter-0.14.0.js"></script>
+    <link href="http://jquery.jcubic.pl/css/jquery.splitter.css" rel="stylesheet"/>
+
+	<script type="text/javascript">var switchTo5x=true;</script>
+  </body>
+  
+  
+  <style>
+	.fill,body,html {
+    height: 100%
+}
+
+#json_vl,.td_head,.td_row_even,.td_row_odd {
+    font-size: small
+}
+
+#json_pnl,#xxa,.navbar-header,.navbar-nav,.navbar-nav>li,.td_head {
+    float: left
+}
+
+.fill {
+    min-height: 100%
+}
+
+#json_vl {
+    font-family: Consolas,Monaco,Lucida Console,Liberation Mono,DejaVu Sans Mono,Bitstream Vera Sans Mono,Courier New,monospace
+}
+
+#widget {
+    width: 100%
+}
+
+.top_size {
+    height: 51px
+}
+
+#all_panels {
+    height: 100%;
+    min-height: 100%
+}
+
+#aboutLnk {
+    position: fixed;
+    right: 10px;
+    top: 15px
+}
+
+#inner_text {
+    display: block;
+    position: absolute;
+    height: auto;
+    bottom: 0;
+    top: 0;
+    left: 0;
+    right: 0;
+    margin-top: 51px;
+    margin-bottom: 0
+}
+
+#json_pnl {
+    background-color: #ccc;
+    width: 33.3%
+}
+
+#xxa {
+    background-color: #E8E8E8;
+    width: 66.7%
+}
+
+#table_pnl,#tree_pnl {
+    background-color: #E8E8E8;
+    float: left;
+    width: 50%
+}
+
+#sharethis {
+    position: fixed;
+    right: 80px;
+    top: 10px
+}
+
+#inner_tbl {
+    padding-left: 2px
+}
+
+.td_row_even {
+    padding: 2px;
+    background-color: #F6F4F0
+}
+
+.td_row_odd {
+    padding: 2px;
+    background-color: #FFF
+}
+
+.td_head {
+    padding: 2px;
+    font-weight: 700
+}
+
+input,p,select,td,textarea,th {
+    font-size: 1em
+}
+
+table,td,th {
+    border: 1px solid gray
+}
+
+textarea {
+    -moz-box-sizing: border-box;
+    -webkit-box-sizing: border-box;
+    box-sizing: border-box;
+    display: block;
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 4px;
+    border: 1px solid #333;
+    overflow-y: auto;
+    overflow-x: hidden
+}
+
+*,html {
+    font-family: Verdana,Arial,Helvetica,sans-serif
+}
+
+form,h1,h2,h3,h4,h5,li,p,ul {
+    margin: 0;
+    padding: 0
+}
+
+img {
+    border: none
+}
+
+p {
+    margin: 0 0 1em
+}
+
+table {
+    font-size: 100%
+}
+
+ol.tree {
+    padding: 0 0 0 30px;
+    width: 300px
+}
+
+li {
+    position: relative;
+    margin-left: -15px;
+    list-style: none
+}
+
+li.file {
+    margin-left: -1px!important
+}
+
+li.file a {
+    background: url(leaf.png)0 5px no-repeat;
+    color: #000;
+    padding-left: 12px;
+    text-decoration: none;
+    display: block;
+    font-size: small
+}
+
+li.file a[href$='.css'],li.file a[href$='.js'],li.file a[href*='.pdf'],li.file a[href*='.html'] {
+    background: url(http://www.thecssninja.com/demo/css_tree/document.png)no-repeat
+}
+
+li input {
+    position: absolute;
+    left: 0;
+    margin-left: 0;
+    opacity: 0;
+    z-index: 2;
+    cursor: pointer;
+    height: 1em;
+    width: 1em;
+    top: 0
+}
+
+li input+ol {
+    background: url(http://www.thecssninja.com/demo/css_tree/toggle-small-expand.png)40px -3px no-repeat;
+    margin: -20px 0 0 -44px;
+    height: 1em;
+    padding: 1.563em 0 0 80px
+}
+
+li label.lbl_array,li label.lbl_obj {
+    display: block;
+    padding-left: 33px;
+    margin-bottom: 2px
+}
+
+li input+ol>li {
+    display: none;
+    margin-left: -14px!important;
+    padding-left: 1px
+}
+
+li label.lbl_obj {
+    background: url(folder.png)15px 1px no-repeat;
+    cursor: pointer
+}
+
+li label.lbl_array {
+    background: url(array.png)15px 1px no-repeat;
+    cursor: pointer
+}
+
+li input:checked+ol {
+    background: url(http://www.thecssninja.com/demo/css_tree/toggle-small.png)40px -3px no-repeat;
+    margin: -20px 0 0 -44px;
+    padding: 1.563em 0 0 80px;
+    height: auto
+}
+
+li input:checked+ol>li {
+    display: block;
+    margin: 0 0 .125em
+}
+
+li input:checked+ol>li:last-child {
+    margin: 0 0 .063em
+}
+
+.container {
+    width: 970px;
+    max-width: none!important
+}
+
+.col-xs-4 {
+    padding-top: 15px;
+    padding-bottom: 15px;
+    background-color: #eee;
+    background-color: rgba(86,61,124,.15);
+    border: 1px solid #ddd;
+    border: 1px solid rgba(86,61,124,.2)
+}
+
+.container .navbar-collapse,.container .navbar-header {
+    margin-right: 0;
+    margin-left: 0
+}
+
+.navbar-collapse {
+    display: block!important;
+    height: auto!important;
+    padding-bottom: 0;
+    overflow: visible!important;
+    border-top: 0
+}
+
+.navbar-toggle {
+    display: none
+}
+
+.navbar-brand {
+    margin-left: -15px
+}
+
+.navbar-btn {
+    margin-left: 15px
+}
+
+.navbar-nav {
+    margin: 0
+}
+
+.navbar-nav>li>a {
+    padding: 15px
+}
+
+.navbar-nav.navbar-right {
+    float: right
+}
+
+.navbar .navbar-nav .open .dropdown-menu {
+    position: absolute;
+    float: left;
+    background-color: #fff;
+    border: 1px solid #ccc;
+    border: 1px solid rgba(0,0,0,.15);
+    border-width: 0 1px 1px;
+    border-radius: 0 0 4px 4px;
+    -webkit-box-shadow: 0 6px 12px rgba(0,0,0,.175);
+    box-shadow: 0 6px 12px rgba(0,0,0,.175)
+}
+
+.navbar-default .navbar-nav .open .dropdown-menu>li>a {
+    color: #333
+}
+
+.navbar .navbar-nav .open .dropdown-menu>.active>a,.navbar .navbar-nav .open .dropdown-menu>.active>a:focus,.navbar .navbar-nav .open .dropdown-menu>.active>a:hover,.navbar .navbar-nav .open .dropdown-menu>li>a:focus,.navbar .navbar-nav .open .dropdown-menu>li>a:hover {
+    color: #fff!important;
+    background-color: #428bca!important
+}
+
+.navbar .navbar-nav .open .dropdown-menu>.disabled>a,.navbar .navbar-nav .open .dropdown-menu>.disabled>a:focus,.navbar .navbar-nav .open .dropdown-menu>.disabled>a:hover {
+    color: #999!important;
+    background-color: transparent!important
+}
+</style>
+  
+  
+  <script type="text/javascript">
+        var json_visible = !0
+  , json_pnl_size = 0
+  , table_visible = !0
+  , tree_visible = !0
+  , tree_pnl_size = 0
+  , xxa_pnl_size = 0;
+jQuery(function(a) {
+    function e() {
+        json_visible ? (a("#all_panels").split().position(a("#all_panels").width() - xxa_pnl_size - 2),
+        table_visible && tree_visible ? a("#xxa").split().position(xxa_pnl_size - tree_pnl_size - 2) : !table_visible && tree_visible ? a("#xxa").split().position(0) : table_visible && !tree_visible ? a("#xxa").split().position(xxa_pnl_size) : table_visible || tree_visible || a("#all_panels").split().position(a("#all_panels").width())) : (a("#all_panels").split().position(0),
+        table_visible && tree_visible ? a("#xxa").split().position(xxa_pnl_size - tree_pnl_size - 2) : !table_visible && tree_visible ? a("#xxa").split().position(0) : table_visible && !tree_visible && a("#xxa").split().position(a("#all_panels").width() - 2))
+    }
+    a("#all_panels").split({
+        orientation: "vertical",
+        limit: 0,
+        position: "33%"
+    });
+    a("#xxa").split({
+        orientation: "vertical",
+        limit: 0,
+        position: "50%"
+    });
+    tree_pnl_size = a("#tree_pnl").width();
+    json_pnl_size = a("#json_pnl").width();
+    xxa_pnl_size = a("#xxa").width();
+    a("#all_panels").split().settings.onDrag = function() {
+        json_visible ? (json_pnl_size = a("#json_pnl").width(),
+        xxa_pnl_size = a("#xxa").width(),
+        table_visible && tree_visible ? a("#xxa").split().position(xxa_pnl_size - tree_pnl_size - 2) : table_visible && !tree_visible ? a("#xxa").split().position(xxa_pnl_size - 2) : !table_visible && tree_visible && a("#xxa").split().position(0)) : a("#all_panels").split().position(0)
+    }
+    ;
+    a("#xxa").split().settings.onDrag = function() {
+        !table_visible && tree_visible ? a("#xxa").split().position(0) : tree_pnl_size = a("#tree_pnl").width()
+    }
+    ;
+    a("#jsonViewMenu").click(function() {
+        if (table_visible || tree_visible)
+            a("#jsonLi").toggleClass("active "),
+            json_visible = !json_visible,
+            e()
+    });
+    a("#tableViewMenu").click(function() {
+        if (json_visible || tree_visible)
+            a("#tableLi").toggleClass("active "),
+            table_visible = !table_visible,
+            e()
+    });
+    a("#treeViewMenu").click(function() {
+        if (json_visible || table_visible)
+            a("#treeLi").toggleClass("active "),
+            tree_visible = !tree_visible,
+            e()
+    });
+    a("#load_json_btn").click(function() {
+        processJson()
+    });
+    a("#aboutLnk").click(function() {
+        a("#leaveMsg").val("");
+        a("#msgConfirmation").hide();
+        a("#msgForm").show();
+        a("#aboutModal").modal("show")
+    });
+    a("#sendMsgBtn").click(function() {
+        a("#msgForm").hide();
+        a("#msgConfirmation").show();
+        sendMsg()
+    });
+    a("#load_url_btn").click(function() {
+        a("#inputURLModal").modal("show")
+    });
+    a("#exec_loadBtn").click(function() {
+        loadfromURL(a("#urlInput").val())
+    })
+});
+function sendMsg() {
+    $.ajax({
+        type: "GET",
+        url: "http://json2table-env-ayji8pibkt.elasticbeanstalk.com/save_msg",
+        data: {
+            callback: "call",
+            msg: $("#leaveMsg").val()
+        },
+        contentType: "application/json",
+        dataType: "jsonp",
+        success: function(a) {},
+        error: function(a) {}
+    })
+}
+var g;
+function loadfromURL(a) {
+    $("#json_vl").val("Loading...");
+    $("#inner_tree").html("");
+    $("#inner_tbl").html("");
+    "http" != a.substr(0, 4) && (a = "http://" + a);
+    $.ajax({
+        type: "GET",
+        url: "http://json2table-env-ayji8pibkt.elasticbeanstalk.com/getjson",
+        data: {
+            callback: "call",
+            url: encodeURIComponent(a)
+        },
+        contentType: "application/json",
+        dataType: "jsonp",
+        success: function(a) {
+            $("#json_vl").val(JSON.stringify(a, void 0, 2));
+            processJson()
+        },
+        error: function(e) {
+            $("#json_vl").val("");
+            $("#error_msg").text("Not a valid JSON from " + a);
+            $("#errorModal").modal("show");
+            return {}
+        }
+    })
+}
+function call(a) {
+    $("#json_vl").val(JSON.stringify(a, void 0, 2));
+    processJson()
+}
+function processJson() {
+    $("#inner_tbl").html(buildTable(getJsonVar()));
+    showTree()
+}
+function getJsonVar() {
+    try {
+        var a = $.parseJSON($("#json_vl").val());
+        $("#json_vl").val(JSON.stringify(a, void 0, 2));
+        return a
+    } catch (e) {
+        return $("#error_msg").text(e.message),
+        $("#errorModal").modal("show"),
+        {}
+    }
+}
+function showTree() {
+    var a = document.createElement("ol")
+      , e = document.createElement("li")
+      , d = "_" + Math.random().toString(36).substr(2, 9);
+    e.innerHTML = "<label for='" + d + "' class='lbl_obj'>&nbsp;</label> <input type='checkbox' checked id='" + d + "' />";
+    d = document.createElement("ol");
+    e.appendChild(d);
+    a.appendChild(e);
+    buildTree(getJsonVar(), 0, d);
+    $("#inner_tree").html(a)
+}
+function buildTable(a) {
+    var e = document.createElement("table"), d, b;
+    if (isArray(a))
+        return buildArray(a);
+    for (var c in a)
+        "object" != typeof a[c] || isArray(a[c]) ? "object" == typeof a[c] && isArray(a[c]) ? (d = e.insertRow(-1),
+        b = d.insertCell(-1),
+        b.colSpan = 2,
+        b.innerHTML = '<div class="td_head">' + encodeText(c) + '</div><table style="width:100%">' + $(buildArray(a[c]), !1).html() + "</table>") : (d = e.insertRow(-1),
+        b = d.insertCell(-1),
+        b.innerHTML = "<div class='td_head'>" + encodeText(c) + "</div>",
+        d = d.insertCell(-1),
+        d.innerHTML = "<div class='td_row_even'>" + encodeText(a[c]) + "</div>") : (d = e.insertRow(-1),
+        b = d.insertCell(-1),
+        b.colSpan = 2,
+        b.innerHTML = '<div class="td_head">' + encodeText(c) + '</div><table style="width:100%">' + $(buildTable(a[c]), !1).html() + "</table>");
+    return e
+}
+function buildArray(a) {
+    var e = document.createElement("table"), d, b, c = !1, p = !1, m = {}, h = -1, n = 0, l;
+    l = "";
+    if (0 == a.length)
+        return "<div></div>";
+    d = e.insertRow(-1);
+    for (var f = 0; f < a.length; f++)
+        if ("object" != typeof a[f] || isArray(a[f]))
+            "object" == typeof a[f] && isArray(a[f]) ? (b = d.insertCell(h),
+            b.colSpan = 2,
+            b.innerHTML = '<div class="td_head"></div><table style="width:100%">' + $(buildArray(a[f]), !1).html() + "</table>",
+            c = !0) : p || (h += 1,
+            p = !0,
+            b = d.insertCell(h),
+            m.empty = h,
+            b.innerHTML = "<div class='td_head'>&nbsp;</div>");
+        else
+            for (var k in a[f])
+                l = "-" + k,
+                l in m || (c = !0,
+                h += 1,
+                b = d.insertCell(h),
+                m[l] = h,
+                b.innerHTML = "<div class='td_head'>" + encodeText(k) + "</div>");
+    c || e.deleteRow(0);
+    n = h + 1;
+    for (f = 0; f < a.length; f++)
+        if (d = e.insertRow(-1),
+        td_class = isEven(f) ? "td_row_even" : "td_row_odd",
+        "object" != typeof a[f] || isArray(a[f]))
+            if ("object" == typeof a[f] && isArray(a[f]))
+                for (h = m.empty,
+                c = 0; c < n; c++)
+                    b = d.insertCell(c),
+                    b.className = td_class,
+                    l = c == h ? '<table style="width:100%">' + $(buildArray(a[f]), !1).html() + "</table>" : " ",
+                    b.innerHTML = "<div class='" + td_class + "'>" + encodeText(l) + "</div>";
+            else
+                for (h = m.empty,
+                c = 0; c < n; c++)
+                    b = d.insertCell(c),
+                    l = c == h ? a[f] : " ",
+                    b.className = td_class,
+                    b.innerHTML = "<div class='" + td_class + "'>" + encodeText(l) + "</div>";
+        else {
+            for (c = 0; c < n; c++)
+                b = d.insertCell(c),
+                b.className = td_class,
+                b.innerHTML = "<div class='" + td_class + "'>&nbsp;</div>";
+            for (k in a[f])
+                c = a[f],
+                l = "-" + k,
+                h = m[l],
+                b = d.cells[h],
+                b.className = td_class,
+                "object" != typeof c[k] || isArray(c[k]) ? "object" == typeof c[k] && isArray(c[k]) ? b.innerHTML = '<table style="width:100%">' + $(buildArray(c[k]), !1).html() + "</table>" : b.innerHTML = "<div class='" + td_class + "'>" + encodeText(c[k]) + "</div>" : b.innerHTML = '<table style="width:100%">' + $(buildTable(c[k]), !1).html() + "</table>"
+        }
+    return e
+}
+function encodeText(a) {
+    return $("<div />").text(a).html()
+}
+function isArray(a) {
+    return "[object Array]" === Object.prototype.toString.call(a)
+}
+function isEven(a) {
+    return 0 == a % 2
+}
+function buildTree(a, e, d) {
+    e += 1;
+    if ("undefined" === typeof a)
+        log("undef!!", e);
+    else
+        for (var b in a)
+            if ("object" == typeof a[b]) {
+                var c = addTree(b, d, isArray(a[b]));
+                buildTree(a[b], e, c)
+            } else
+                addLeaf(b, a, d)
+}
+function addTree(a, e, d) {
+    var b = "lbl_obj";
+    d && (b = "lbl_array");
+    var c = "_" + Math.random().toString(36).substr(2, 9);
+    d = document.createElement("li");
+    d.innerHTML = "<label for='" + c + "' class='" + b + "'>" + encodeText(a) + "</label> <input type='checkbox' checked id='" + c + "' />";
+    a = document.createElement("ol");
+    d.appendChild(a);
+    null != e && e.appendChild(d);
+    return a
+}
+function addLeaf(a, e, d) {
+    var b = "";
+    isArray(e) || (b = a + ":");
+    b += e[a];
+    Math.random().toString(36).substr(2, 9);
+    a = document.createElement("li");
+    a.className = "file";
+    a.innerHTML = "<a>" + encodeText(b) + "</a>";
+    d.appendChild(a)
+}
+function log(a, e, d) {
+    console.log(a)
+};
+    </script>
+</html>
